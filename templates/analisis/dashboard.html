@@ -1,0 +1,366 @@
+{% extends "layout.html" %}
+
+{% block title %}Dashboard - {{ proyecto.nombre }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Encabezado -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="display-6 mb-2">
+                <i class="bi bi-graph-up text-primary me-2"></i> 
+                Dashboard de Análisis
+            </h1>
+            <p class="text-muted mb-0">{{ proyecto.nombre }} - {{ proyecto.empresa }}</p>
+        </div>
+        <a href="{{ url_for('show_proyecto', id=proyecto.id) }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-2"></i> Volver al Proyecto
+        </a>
+    </div>
+
+    <!-- Indicadores Principales -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="metric-card">
+                <i class="bi bi-cash-stack display-4 {% if indicador.van and indicador.van > 0 %}text-success{% else %}text-danger{% endif %} mb-3"></i>
+                <p class="metric-label">VAN (Valor Actual Neto)</p>
+                <p class="metric-value {% if indicador.van and indicador.van > 0 %}text-success{% else %}text-danger{% endif %}">
+                    {{ formatCurrency(indicador.van) }}
+                </p>
+                <small class="formula-box d-block">
+                    $VAN = \sum_{k=0}^{5} \frac{F_k}{(1+i)^k} - I_0$
+                </small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card">
+                <i class="bi bi-percent display-4 text-primary mb-3"></i>
+                <p class="metric-label">TIR (Tasa Interna de Retorno)</p>
+                <p class="metric-value text-primary">
+                    {{ formatPercent(indicador.tir) }}
+                </p>
+                <!-- Nivel de atractivo -->
+                <div class="mt-2">
+                    {% if indicador.tir and indicador.tir > 20 %}
+                    <span class="badge bg-success">BASTANTE ATRACTIVO</span>
+                    {% elif indicador.tir and indicador.tir > 10 %}
+                    <span class="badge bg-warning">ATRACTIVO</span>
+                    {% else %}
+                    <span class="badge bg-danger">POCO ATRACTIVO</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card">
+                <i class="bi bi-graph-up-arrow display-4 text-info mb-3"></i>
+                <p class="metric-label">ROI (Retorno sobre Inversión)</p>
+                <p class="metric-value text-info">
+                    {{ formatPercent(indicador.roi) }}
+                </p>
+                <small class="formula-box d-block">
+                    $ROI = \frac{Beneficio\ Neto}{I_0} \times 100\%$
+                </small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card">
+                <i class="bi bi-clock-history display-4 text-warning mb-3"></i>
+                <p class="metric-label">PRI (Período de Recuperación de la Inversión)</p>
+                <p class="metric-value text-warning">
+                    {{ indicador.payback|round(2) if indicador.payback else 'N/A' }} días
+                </p>
+                <small class="formula-box d-block">
+                    $Payback = A_0 + \frac{I_0 - FA_0}{F_{A_0+1}}$
+                </small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Segunda Fila de Indicadores -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="metric-card">
+                <p class="metric-label">IR (Índice de Rentabilidad)</p>
+                <p class="metric-value {% if indicador.ir and indicador.ir > 0 %}text-success{% else %}text-danger{% endif %}">
+                    {{ indicador.ir|round(4) if indicador.ir else 'N/A' }}
+                </p>
+                <small class="formula-box d-block">
+                    $IR = \frac{VAN}{I_0}$
+                </small>
+                <div class="mt-2">
+                    {% if indicador.ir and indicador.ir > 0 %}
+                    <span class="badge bg-success">RENTABLE</span>
+                    {% elif indicador.ir and indicador.ir == 0 %}
+                    <span class="badge bg-secondary">EQUILIBRIO</span>
+                    {% else %}
+                    <span class="badge bg-danger">NO RENTABLE</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="metric-card">
+                <p class="metric-label">B/C (Beneficio/Costo)</p>
+                <p class="metric-value {% if indicador.relacion_bc and indicador.relacion_bc > 1 %}text-success{% else %}text-danger{% endif %}">
+                    {{ indicador.relacion_bc|round(4) if indicador.relacion_bc else 'N/A' }}
+                </p>
+                <small class="formula-box d-block">
+                    $I_{BC} = \frac{\sum \frac{B_k}{(1+i)^k}}{\sum \frac{C_k}{(1+i)^k}}$
+                </small>
+                <div class="mt-2">
+                    {% if indicador.relacion_bc and indicador.relacion_bc > 1 %}
+                    <span class="badge bg-success">BENEFICIOS > COSTOS</span>
+                    {% else %}
+                    <span class="badge bg-danger">COSTOS > BENEFICIOS</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="metric-card">
+                <p class="metric-label">Utilidad Neta</p>
+                <p class="metric-value {% if indicador.utilidad_neta and indicador.utilidad_neta > 0 %}text-success{% else %}text-danger{% endif %}">
+                    {{ formatCurrency(indicador.utilidad_neta) }}
+                </p>
+                <small class="formula-box d-block">
+                    $UN = (I - CV) \times (1 - {{ proyecto.tasa_impuestos/100 }})$
+                </small>
+                <div class="mt-2">
+                    <span class="badge {% if indicador.utilidad_neta and indicador.utilidad_neta > 0 %}bg-success{% else %}bg-danger{% endif %}">
+                        {% if indicador.utilidad_neta and indicador.utilidad_neta > 0 %}UTILIDAD{% else %}PÉRDIDA{% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card card-vrash h-100">
+                <div class="card-header card-header-vrash">
+                    <h5 class="mb-0"><i class="bi bi-bar-chart me-2"></i> Flujo de Efectivo por Día</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="flujoChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card card-vrash h-100">
+                <div class="card-header card-header-vrash">
+                    <h5 class="mb-0"><i class="bi bi-pie-chart me-2"></i> Distribución Ingresos vs Egresos</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="distribucionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Análisis de Decisión -->
+    <div class="card card-vrash mb-4">
+        <div class="card-header card-header-vrash">
+            <h5 class="mb-0"><i class="bi bi-clipboard-check me-2"></i> Análisis y Decisión</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-8">
+                    <h4 class="mb-3">Decisión: 
+                        <span class="badge {% if indicador.decision == 'ACEPTAR' %}bg-success{% else %}bg-danger{% endif %} px-3 py-2">
+                            {{ indicador.decision }}
+                        </span>
+                    </h4>
+                    
+                    <div class="alert alert-{{ 'success' if indicador.decision == 'ACEPTAR' else 'danger' }}">
+                        <h5><i class="bi bi-{{ 'check-circle' if indicador.decision == 'ACEPTAR' else 'x-circle' }} me-2"></i> 
+                        Interpretación:</h5>
+                        <p class="mb-0">{{ indicador.observaciones }}</p>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <h6>Criterios de Evaluación:</h6>
+                        <ul>
+                            <li><strong>VAN > 0:</strong> El proyecto genera valor económico</li>
+                            <li><strong>TIR > TMAR ({{ proyecto.tasa_descuento }}%):</strong> Rentabilidad superior al costo de capital</li>
+                            <li><strong>IR > 0:</strong> Por cada boliviano invertido se genera valor positivo</li>
+                            <li><strong>B/C > 1:</strong> Los beneficios superan a los costos</li>
+                            <li><strong>Payback <= 5 días:</strong> La inversión se recupera dentro del horizonte del proyecto</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <h6 class="card-title">Resumen Ejecutivo</h6>
+                            <table class="table table-sm">
+                                <tr>
+                                    <td>Ingresos Totales:</td>
+                                    <td class="text-end"><strong>{{ formatCurrency(indicador.total_ingresos) }}</strong></td>
+                                </tr>
+                                <tr>
+                                    <td>Egresos Totales:</td>
+                                    <td class="text-end"><strong>{{ formatCurrency(indicador.total_egresos) }}</strong></td>
+                                </tr>
+                                <tr class="table-active">
+                                    <td><strong>Utilidad Neta:</strong></td>
+                                    <td class="text-end {% if indicador.utilidad_neta and indicador.utilidad_neta > 0 %}text-success{% else %}text-danger{% endif %}">
+                                        <strong>{{ formatCurrency(indicador.utilidad_neta) }}</strong>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Inversión Inicial:</td>
+                                    <td class="text-end">{{ formatCurrency(proyecto.inversion_inicial) }}</td>
+                                </tr>
+                                <tr>
+                                    <td>TMAR:</td>
+                                    <td class="text-end">{{ formatPercent(proyecto.tasa_descuento) }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Tasa Impuestos:</td>
+                                    <td class="text-end">{{ formatPercent(proyecto.tasa_impuestos) }}</td>
+                                </tr>
+                            </table>
+                            
+                            <hr>
+                            
+                            <small class="text-muted">
+                                <i class="bi bi-clock me-1"></i>
+                                Calculado: {{ indicador.calculado_at.strftime('%d/%m/%Y %H:%M') if indicador.calculado_at else 'No calculado' }}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Acciones Rápidas -->
+    <div class="card card-vrash">
+        <div class="card-header card-header-vrash">
+            <h5 class="mb-0"><i class="bi bi-lightning me-2"></i> Acciones Rápidas</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4 mb-4">
+                    <a href="{{ url_for('sensibilidad_proyecto', id=proyecto.id) }}" class="btn btn-vrash w-100">
+                        <i class="bi bi-sliders me-2"></i> Sensibilidad
+                    </a>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <a href="{{ url_for('gantt_proyecto', id=proyecto.id) }}" class="btn btn-info w-100 text-white">
+                        <i class="bi bi-calendar3 me-2"></i> Diagrama Gantt
+                    </a>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <form action="{{ url_for('calcular_indicadores', id=proyecto.id) }}" method="POST" class="d-inline w-100">
+                        <button type="submit" class="btn btn-success w-100">
+                            <i class="bi bi-arrow-clockwise me-2"></i> Recalcular
+                        </button>
+                    </form>
+                </div>
+        
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Gráfico de flujos
+    const flujoCtx = document.getElementById('flujoChart').getContext('2d');
+    const flujoChart = new Chart(flujoCtx, {
+        type: 'line',
+        data: {
+            labels: ['Día 1', 'Día 2', 'Día 3', 'Día 4', 'Día 5'],
+            datasets: [{
+                label: 'Flujo Neto (Bs)',
+                data: {{ flujos_data|tojson }},
+                borderColor: '#457B9D',
+                backgroundColor: 'rgba(69, 123, 157, 0.1)',
+                tension: 0.1,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return 'Bs ' + value.toLocaleString('es-BO');
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Gráfico de distribución
+    const distribucionCtx = document.getElementById('distribucionChart').getContext('2d');
+    const distribucionChart = new Chart(distribucionCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Ingresos', 'Egresos'],
+            datasets: [{
+                data: [
+                    {{ indicador.total_ingresos }},
+                    {{ indicador.total_egresos }}
+                ],
+                backgroundColor: [
+                    'rgba(40, 167, 69, 0.8)',
+                    'rgba(220, 53, 69, 0.8)'
+                ],
+                borderColor: [
+                    'rgb(40, 167, 69)',
+                    'rgb(220, 53, 69)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            label += formatCurrency(context.parsed);
+                            return label;
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    function exportarPDF() {
+        alert('Función de exportación a PDF en desarrollo');
+        // En una implementación real, aquí se enviaría una solicitud al servidor
+        // para generar y descargar un PDF con el reporte
+    }
+
+    // Actualizar fórmulas MathJax
+    if (window.MathJax) {
+        MathJax.typeset();
+    }
+</script>
+{% endblock %}

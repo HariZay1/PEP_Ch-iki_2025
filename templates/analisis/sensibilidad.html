@@ -1,0 +1,360 @@
+{% extends "layout.html" %}
+
+{% block title %}Análisis de Sensibilidad - {{ proyecto.nombre }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Encabezado -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="display-6 mb-2">
+                <i class="bi bi-sliders text-primary me-2"></i> 
+                Análisis de Sensibilidad
+            </h1>
+            <p class="text-muted mb-0">{{ proyecto.nombre }} - Evaluación de escenarios</p>
+        </div>
+        <a href="{{ url_for('dashboard_proyecto', id=proyecto.id) }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-2"></i> Volver al Dashboard
+        </a>
+    </div>
+
+    <!-- Información del Proyecto -->
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle me-2"></i>
+        <strong>Análisis de Sensibilidad para 5 días:</strong> 
+        Evalúa el impacto de variaciones en variables clave sobre VAN y TIR.
+        <span class="badge bg-secondary ms-2">5 días de análisis</span>
+    </div>
+
+    <!-- Formulario para escenarios personalizados -->
+    <div class="card card-vrash mb-4">
+        <div class="card-header card-header-vrash">
+            <h5 class="mb-0"><i class="bi bi-gear me-2"></i> Configurar Escenarios Personalizados</h5>
+        </div>
+        <div class="card-body">
+            {% if sensibilidad_guardada %}
+            <div class="alert alert-success mb-4">
+                <i class="bi bi-check-circle me-2"></i>
+                <strong>Resultados Guardados:</strong> {{ sensibilidad_guardada.fecha[:10] }} a las {{ sensibilidad_guardada.fecha[11:16] }}
+            </div>
+            {% endif %}
+            
+            <form method="POST" action="{{ url_for('sensibilidad_proyecto', id=proyecto.id) }}">
+                <div class="row">
+                    {% for i in range(1, 4) %}
+                    <div class="col-md-4 mb-4">
+                        <div class="card border">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0">Escenario {{ i }}</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label">Nombre del Escenario</label>
+                                    <input type="text" 
+                                           class="form-control" 
+                                           name="escenario_nombre_{{ i }}"
+                                           value="{{ 'PESIMISTA' if i==1 else 'ESCENARIO BASE' if i==2 else 'OPTIMISTA' }}"
+                                           placeholder="Ej: {{ 'Pesimista' if i==1 else 'Base' if i==2 else 'Optimista' }}">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Tasa de Descuento (%)</label>
+                                    <div class="input-group">
+                                        <input type="number" 
+                                               step="0.01" 
+                                               class="form-control" 
+                                               name="tasa_descuento_{{ i }}" 
+                                               value="{{ (proyecto.tasa_descuento * 100)|int }}"
+                                               min="0">
+                                        <span class="input-group-text">%</span>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Precio de Venta (Bs)</label>
+                                    <input type="number" 
+                                           step="0.01" 
+                                           class="form-control" 
+                                           name="precio_venta_{{ i }}" 
+                                           value="{{ proyecto.precio_venta_unitario }}">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Costos (% del base)</label>
+                                    <div class="input-group">
+                                        <input type="number" 
+                                               step="1" 
+                                               class="form-control" 
+                                               name="costos_{{ i }}" 
+                                               value="{{ 100 }}"
+                                               min="0">
+                                        <span class="input-group-text">%</span>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Volumen (% del base)</label>
+                                    <div class="input-group">
+                                        <input type="number" 
+                                               step="1" 
+                                               class="form-control" 
+                                               name="volumen_{{ i }}" 
+                                               value="{{ 79 if i==1 else 100 if i==2 else 109 }}"
+                                               min="0">
+                                        <span class="input-group-text">%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <div class="text-center mt-4">
+                    <button type="submit" class="btn btn-vrash">
+                        <i class="bi bi-calculator me-2"></i> Calcular y Guardar Sensibilidad
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Resultados de Sensibilidad -->
+    {% if resultados %}
+    <div class="card card-vrash mb-4">
+        <div class="card-header card-header-vrash">
+            <h5 class="mb-0"><i class="bi bi-graph-up-arrow me-2"></i> Resultados del Análisis</h5>
+        </div>
+        <div class="card-body">
+            <!-- Tabla de Resultados -->
+            <div class="table-responsive mb-4">
+                <table class="table table-vrash table-hover">
+                    <thead>
+                        <tr>
+                            <th>Escenario</th>
+                            <th class="text-end">VAN (Bs)</th>
+                            <th class="text-end">TIR (%)</th>
+                            <th>Viabilidad</th>
+                            <th>Variables Ajustadas</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for nombre, resultado in resultados.items() %}
+                        <tr>
+                            <td>
+                                <strong>{{ nombre }}</strong>
+                                {% if nombre == 'ESCENARIO BASE' %}
+                                <span class="badge bg-primary ms-2">Base</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end {% if resultado.van > 0 %}text-success{% else %}text-danger{% endif %}">
+                                <strong>{{ formatCurrency(resultado.van) }}</strong>
+                                {% if resultado.van > 0 %}
+                                <i class="bi bi-arrow-up-circle text-success ms-1"></i>
+                                {% else %}
+                                <i class="bi bi-arrow-down-circle text-danger ms-1"></i>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                {{ "%.2f"|format(resultado.tir * 100) }}%
+                                {% if resultado.tir > proyecto.tasa_descuento %}
+                                <i class="bi bi-check-circle text-success ms-1"></i>
+                                {% else %}
+                                <i class="bi bi-x-circle text-danger ms-1"></i>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge {% if resultado.viabilidad == 'VIABLE' %}bg-success{% else %}bg-danger{% endif %}">
+                                    {{ resultado.viabilidad }}
+                                </span>
+                            </td>
+                            <td>
+                                <small>
+                                    TMAR: {{ "%.2f"|format(resultado.datos.tasa_descuento * 100) }}%,
+                                    Precio: {{ resultado.datos.precio_venta }} Bs,
+                                    Costos: {{ resultado.datos.costos }}%,
+                                    Volumen: {{ resultado.datos.volumen }}%
+                                </small>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Gráficos -->
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="chart-container">
+                        <canvas id="vanChart"></canvas>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="chart-container">
+                        <canvas id="tirChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Interpretación -->
+    <div class="card card-vrash">
+        <div class="card-header card-header-vrash">
+            <h5 class="mb-0"><i class="bi bi-lightbulb me-2"></i> Interpretación del Análisis</h5>
+        </div>
+        <div class="card-body">
+            <h6>¿Qué es el Análisis de Sensibilidad?</h6>
+            <p>
+                El análisis de sensibilidad evalúa cómo cambian los indicadores financieros (VAN y TIR) 
+                ante variaciones en las variables clave del proyecto. Esto ayuda a identificar:
+            </p>
+            <ul>
+                <li><strong>Variables críticas:</strong> Aquellas que tienen mayor impacto en la viabilidad del proyecto</li>
+                <li><strong>Puntos de equilibrio:</strong> El momento en que el VAN pasa de positivo a negativo</li>
+                <li><strong>Margen de seguridad:</strong> Qué tan robusta es la decisión ante cambios en el entorno</li>
+                <li><strong>Escenarios límite:</strong> Hasta qué punto pueden variar las variables antes de que el proyecto deje de ser viable</li>
+            </ul>
+
+            <h6 class="mt-4">Recomendaciones:</h6>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card border-success">
+                        <div class="card-body">
+                            <h6><i class="bi bi-check-circle text-success me-2"></i> Fortalezas</h6>
+                            <ul class="mb-0">
+                                <li>Proyecto robusto si mantiene viabilidad en escenario pesimista</li>
+                                <li>Margen de seguridad amplio si VAN positivo con +30% costos</li>
+                                <li>Buena sensibilidad si TIR > TMAR en todos los escenarios</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card border-danger">
+                        <div class="card-body">
+                            <h6><i class="bi bi-exclamation-triangle text-danger me-2"></i> Debilidades</h6>
+                            <ul class="mb-0">
+                                <li>Proyecto frágil si pierde viabilidad con pequeñas variaciones</li>
+                                <li>Alta dependencia de variables específicas (ej: precio de venta)</li>
+                                <li>Margen de seguridad reducido si VAN cercano a cero en escenario base</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="alert alert-warning mt-4">
+                <strong><i class="bi bi-exclamation-triangle me-2"></i> Atención:</strong>
+                Presta especial atención a las variables que causan que el VAN se vuelva negativo con pequeñas variaciones. 
+                Estas son las variables de mayor riesgo para el proyecto. Considera establecer estrategias de mitigación 
+                para estas variables críticas.
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if resultados %}
+<script>
+    // Preparar datos para gráficos
+    const resultados = {{ resultados | tojson }};
+    const escenarios = Object.keys(resultados);
+    const vanData = Object.values(resultados).map(r => r.van);
+    const tirData = Object.values(resultados).map(r => r.tir * 100);  // Convertir a porcentaje
+    
+    // Gráfico VAN
+    const vanCtx = document.getElementById('vanChart').getContext('2d');
+    new Chart(vanCtx, {
+        type: 'bar',
+        data: {
+            labels: escenarios,
+            datasets: [{
+                label: 'VAN (Bs)',
+                data: vanData,
+                backgroundColor: function(context) {
+                    const value = context.dataset.data[context.dataIndex];
+                    return value >= 0 ? 'rgba(40, 167, 69, 0.7)' : 'rgba(220, 53, 69, 0.7)';
+                },
+                borderColor: function(context) {
+                    const value = context.dataset.data[context.dataIndex];
+                    return value >= 0 ? 'rgb(40, 167, 69)' : 'rgb(220, 53, 69)';
+                },
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return 'VAN: Bs ' + context.raw.toLocaleString('es-BO', {minimumFractionDigits: 2});
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return 'Bs ' + value.toLocaleString('es-BO');
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    // Gráfico TIR
+    const tirCtx = document.getElementById('tirChart').getContext('2d');
+    const tmar = {{ proyecto.tasa_descuento * 100 }};  // Convertir a porcentaje
+    new Chart(tirCtx, {
+        type: 'bar',
+        data: {
+            labels: escenarios,
+            datasets: [{
+                label: 'TIR (%)',
+                data: tirData,
+                backgroundColor: function(context) {
+                    const value = context.dataset.data[context.dataIndex];
+                    return value >= tmar ? 'rgba(13, 110, 253, 0.7)' : 'rgba(220, 53, 69, 0.7)';
+                },
+                borderColor: function(context) {
+                    const value = context.dataset.data[context.dataIndex];
+                    return value >= tmar ? 'rgb(13, 110, 253)' : 'rgb(220, 53, 69)';
+                },
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return 'TIR: ' + context.raw.toFixed(2) + '%';
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return value + '%';
+                        }
+                    }
+                }
+            }
+        }
+    });
+</script>
+{% endif %}
+{% endblock %}

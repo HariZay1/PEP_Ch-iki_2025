@@ -1,0 +1,103 @@
+{% extends "layout.html" %}
+
+{% block title %}Inicio - PEP Gelatinas Ch'iki 2025{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto text-center mb-5">
+        <h1 class="display-4 mb-3">
+            <i class="bi bi-ice-cream-fill vrash-text-primary"></i>
+            Sistema PEP Gelatinas Ch'iki 2025
+        </h1>
+        <p class="lead text-muted mb-4">
+            Evaluación de proyectos para la producción y venta de<br>
+            <strong>Gelatinas con Chips de Colores en Vaso</strong>
+        </p>
+        
+        <div class="row g-4 mb-5">
+            <div class="col-md-4">
+                <div class="metric-card">
+                    <i class="bi bi-calculator display-6 vrash-text-primary mb-3"></i>
+                    <h3 class="metric-label">Cálculos Financieros</h3>
+                    <p class="mb-0">VAN, TIR, IR, B/C, Payback, ROI exactos</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="metric-card">
+                    <i class="bi bi-calendar3 display-6 vrash-text-primary mb-3"></i>
+                    <h3 class="metric-label">5 Días por Actividad</h3>
+                    <p class="mb-0">Gantt editable con 5 días exactos</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="metric-card">
+                    <i class="bi bi-graph-up-arrow display-6 vrash-text-primary mb-3"></i>
+                    <h3 class="metric-label">Análisis de Sensibilidad</h3>
+                    <p class="mb-0">Escenarios optimista y pesimista</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="d-grid gap-2 d-md-flex justify-content-center">
+            <a href="{{ url_for('list_proyectos') }}" class="btn btn-lg vrash-bg-primary text-white px-5 py-3">
+                <i class="bi bi-folder"></i> Ver Proyectos
+            </a>
+            <a href="{{ url_for('create_proyecto') }}" class="btn btn-lg btn-outline-primary px-5 py-3">
+                <i class="bi bi-plus-circle"></i> Nuevo Proyecto
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-5">
+    <div class="col-lg-10 mx-auto">
+        <div class="card card-vrash">
+            <div class="card-header card-header-vrash">
+                <h4 class="mb-0"><i class="bi bi-info-circle"></i> Fórmulas Matemáticas Implementadas</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="formula-box mb-3">
+                            <strong>VAN = Σ[Fₖ/(1+i)ᵏ] - I₀</strong><br>
+                            <small>Valor Actual Neto</small>
+                        </div>
+                        <div class="formula-box mb-3">
+                            <strong>I_BC = Σ[Bₖ/(1+i)ᵏ] / Σ[Cₖ/(1+i)ᵏ]</strong><br>
+                            <small>Índice Beneficio-Costo</small>
+                        </div>
+                        <div class="formula-box mb-3">
+                            <strong>IR = VAN / I₀</strong><br>
+                            <small>Índice de Rentabilidad</small>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="formula-box mb-3">
+                            <strong>Payback = A₀ + (I₀ - FA₀)/F_{A₀+1}</strong><br>
+                            <small>Período de Recuperación</small>
+                        </div>
+                        <div class="formula-box mb-3">
+                            <strong>ROI = (Beneficio neto / I₀) × 100%</strong><br>
+                            <small>Retorno sobre Inversión</small>
+                        </div>
+                        <div class="formula-box mb-3">
+                            <strong>UN = UB × (1 - t)</strong><br>
+                            <small>Utilidad Neta</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="alert alert-info mt-3">
+                    <i class="bi bi-lightbulb"></i>
+                    <strong>Variables:</strong> 
+                    <span class="variable">i</span> = Tasa de descuento, 
+                    <span class="variable">t</span> = Tasa de impuestos, 
+                    <span class="variable">I₀</span> = Inversión inicial, 
+                    <span class="variable">Fₖ</span> = Flujo período k, 
+                    <span class="variable">UB</span> = Utilidad Bruta
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

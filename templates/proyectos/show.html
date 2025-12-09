@@ -1,0 +1,561 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ proyecto.nombre }} - PEP Gelatinas Ch'iki 2025{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Encabezado del Proyecto -->
+    <div class="card card-vrash mb-4">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <h2 class="mb-2">{{ proyecto.nombre }}</h2>
+                    <p class="text-muted mb-2">{{ proyecto.descripcion }}</p>
+                    <div class="d-flex gap-2 align-items-center">
+                        <span class="badge estado-{{ proyecto.estado }} px-3 py-2">
+                            {{ proyecto.estado|title }}
+                        </span>
+                        <span class="badge bg-secondary px-3 py-2">
+                            <i class="bi bi-calendar-week me-1"></i> {{ proyecto.periodos }} días
+                        </span>
+                        {% if proyecto.indicador %}
+                        <span class="badge {% if proyecto.indicador.decision == 'ACEPTAR' %}bg-success{% else %}bg-danger{% endif %} px-3 py-2">
+                            {{ proyecto.indicador.decision }}
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="text-end">
+                    <p class="mb-1"><strong>{{ proyecto.empresa }}</strong></p>
+                    <p class="text-muted mb-0">{{ proyecto.producto }}</p>
+                    <small class="text-muted">
+                        <i class="bi bi-calendar-event me-1"></i>
+                        {{ proyecto.fecha_inicio.strftime('%d/%m/%Y') if proyecto.fecha_inicio else 'Sin fecha' }}
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-lg-3">
+            <div class="sidebar mb-4">
+                <nav class="nav flex-column">
+                    <a class="nav-link active" href="{{ url_for('show_proyecto', id=proyecto.id) }}">
+                        <i class="bi bi-info-circle me-2"></i> Información General
+                    </a>
+                    <a class="nav-link" href="{{ url_for('dashboard_proyecto', id=proyecto.id) }}">
+                        <i class="bi bi-graph-up me-2"></i> Dashboard
+                    </a>
+                    <a class="nav-link" href="{{ url_for('sensibilidad_proyecto', id=proyecto.id) }}">
+                        <i class="bi bi-sliders me-2"></i> Sensibilidad
+                    </a>
+                    <a class="nav-link" href="{{ url_for('gantt_proyecto', id=proyecto.id) }}">
+                        <i class="bi bi-calendar3 me-2"></i> Diagrama Gantt
+                    </a>
+                </nav>
+
+                <hr class="my-4">
+
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('edit_proyecto', id=proyecto.id) }}" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-pencil me-1"></i> Editar Proyecto
+                    </a>
+                    
+                    <form action="{{ url_for('create_costo', proyecto_id=proyecto.id) }}" method="GET" class="d-inline">
+                        <button type="submit" class="btn btn-outline-success btn-sm w-100">
+                            <i class="bi bi-plus-circle me-1"></i> Agregar Costo
+                        </button>
+                    </form>
+                    
+                    <form action="{{ url_for('create_ingreso', proyecto_id=proyecto.id) }}" method="GET" class="d-inline">
+                        <button type="submit" class="btn btn-outline-info btn-sm w-100">
+                            <i class="bi bi-plus-circle me-1"></i> Agregar Ingreso
+                        </button>
+                    </form>
+                    
+                    <form action="{{ url_for('calcular_indicadores', id=proyecto.id) }}" method="POST" class="d-inline">
+                        <button type="submit" class="btn btn-success btn-sm w-100">
+                            <i class="bi bi-calculator me-1"></i> Calcular Indicadores
+                        </button>
+                    </form>
+                    
+                    <form action="{{ url_for('delete_proyecto', id=proyecto.id) }}" method="POST" 
+                          onsubmit="return confirm('¿Eliminar proyecto {{ proyecto.nombre }}?');">
+                        <button type="submit" class="btn btn-outline-danger btn-sm w-100">
+                            <i class="bi bi-trash me-1"></i> Eliminar Proyecto
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Parámetros del Proyecto -->
+                <div class="mt-4">
+                    <h6 class="mb-3"><i class="bi bi-gear me-2"></i> Parámetros</h6>
+                    <table class="table table-sm">
+                        <tr>
+                            <td><small>TMAR (i):</small></td>
+                            <td class="text-end"><strong>{{ proyecto.tasa_descuento|format_percent }}</strong></td>
+
+                        </tr>
+                        <tr>
+                            <td><small>Tasa Imp. (t):</small></td>
+                            <td class="text-end"><strong>{{ proyecto.tasa_impuestos|format_percent }}</strong></td>
+                        </tr>
+                        <tr>
+                            <td><small>Inversión (I₀):</small></td>
+                            <td class="text-end"><strong>{{ formatCurrency(proyecto.inversion_inicial) }}</strong></td>
+                        </tr>
+                        <tr>
+                            <td><small>Unidades (Q):</small></td>
+                            <td class="text-end"><strong>{{ formatNumber(proyecto.unidades_produccion) }}</strong></td>
+                        </tr>
+                        <tr>
+                            <td><small>Precio (P):</small></td>
+                            <td class="text-end"><strong>{{ formatCurrency(proyecto.precio_venta_unitario) }}</strong></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contenido Principal -->
+        <div class="col-lg-9">
+            <!-- Resumen Financiero -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <p class="metric-label">Ingresos Totales</p>
+                        <p class="metric-value text-success">
+                            {{ formatCurrency(proyecto.indicador.total_ingresos if proyecto.indicador else 0) }}
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <p class="metric-label">Egresos Totales</p>
+                        <p class="metric-value text-danger">
+                            {{ formatCurrency(proyecto.indicador.total_egresos if proyecto.indicador else 0) }}
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <p class="metric-label">Utilidad Neta</p>
+                        <p class="metric-value {% if proyecto.indicador and proyecto.indicador.utilidad_neta > 0 %}text-success{% else %}text-danger{% endif %}">
+                            {{ formatCurrency(proyecto.indicador.utilidad_neta if proyecto.indicador else 0) }}
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <p class="metric-label">Períodos</p>
+                        <p class="metric-value">{{ proyecto.periododos }}</p>
+                        <p class="metric-label">Días de análisis</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Costos -->
+            <div class="card card-vrash mb-4">
+                <div class="card-header card-header-vrash d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-wallet2 me-2"></i> Costos del Proyecto</h5>
+                    <span class="badge bg-primary">
+                        {{ proyecto.costos|length }} costos
+                    </span>
+                </div>
+                <div class="card-body">
+                    {% if proyecto.costos %}
+                        <div class="table-responsive">
+                            <table class="table table-vrash table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Concepto</th>
+                                        <th>Tipo</th>
+                                        <th class="text-end">Día 1</th>
+                                        <th class="text-end">Día 2</th>
+                                        <th class="text-end">Día 3</th>
+                                        <th class="text-end">Día 4</th>
+                                        <th class="text-end">Día 5</th>
+                                        <th class="text-end">Total</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for costo in proyecto.costos %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ costo.concepto }}</strong>
+                                            {% if costo.descripcion %}
+                                            <br><small class="text-muted">{{ costo.descripcion[:50] }}{% if costo.descripcion|length > 50 %}...{% endif %}</small>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if costo.tipo == 'fijo' %}
+                                            <span class="badge bg-info">Fijo</span>
+                                            {% elif costo.tipo == 'variable' %}
+                                            <span class="badge bg-warning">Variable</span>
+                                            {% else %}
+                                            <span class="badge bg-primary">Inversión</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end">{{ formatCurrency(costo.periodo_0) }}</td>
+                                        <td class="text-end">{{ formatCurrency(costo.periodo_1) }}</td>
+                                        <td class="text-end">{{ formatCurrency(costo.periodo_2) }}</td>
+                                        <td class="text-end">{{ formatCurrency(costo.periodo_3) }}</td>
+                                        <td class="text-end">{{ formatCurrency(costo.periodo_4) }}</td>
+                                        <td class="text-end">
+                                            <strong>{{ formatCurrency(costo.total) }}</strong>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <a href="{{ url_for('edit_costo', id=costo.id) }}" 
+                                                   class="btn btn-outline-secondary">
+                                                    <i class="bi bi-pencil"></i>
+                                                </a>
+                                                <form action="{{ url_for('delete_costo', id=costo.id) }}" 
+                                                      method="POST" class="d-inline">
+                                                    <button type="submit" class="btn btn-outline-danger" 
+                                                            onclick="return confirm('¿Eliminar costo?')">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                    <!-- Totales -->
+                                    <tr class="table-active">
+                                        <td colspan="2"><strong>TOTALES</strong></td>
+                                        <td class="text-end"><strong>{{ formatCurrency(proyecto.costos|sum(attribute='periodo_0')) }}</strong></td>
+                                        <td class="text-end"><strong>{{ formatCurrency(proyecto.costos|sum(attribute='periodo_1')) }}</strong></td>
+                                        <td class="text-end"><strong>{{ formatCurrency(proyecto.costos|sum(attribute='periodo_2')) }}</strong></td>
+                                        <td class="text-end"><strong>{{ formatCurrency(proyecto.costos|sum(attribute='periodo_3')) }}</strong></td>
+                                        <td class="text-end"><strong>{{ formatCurrency(proyecto.costos|sum(attribute='periodo_4')) }}</strong></td>
+                                        <td class="text-end"><strong>{{ formatCurrency(proyecto.costos|sum(attribute='total')) }}</strong></td>
+                                        <td></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="bi bi-wallet2 display-4 text-muted mb-3"></i>
+                            <h5 class="text-muted">No hay costos registrados</h5>
+                            <p class="text-muted mb-0">Agrega los costos del proyecto para comenzar</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Ingresos -->
+            <div class="card card-vrash mb-4">
+                <div class="card-header card-header-vrash d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-cash-coin me-2"></i> Ingresos del Proyecto</h5>
+                    <span class="badge bg-success">
+                        {{ proyecto.ingresos|length }} ingresos
+                    </span>
+                </div>
+                <div class="card-body">
+                    {% if proyecto.ingresos %}
+                        <div class="table-responsive">
+                            <table class="table table-vrash table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Concepto</th>
+                                        <th class="text-end">Día 1</th>
+                                        <th class="text-end">Día 2</th>
+                                        <th class="text-end">Día 3</th>
+                                        <th class="text-end">Día 4</th>
+                                        <th class="text-end">Día 5</th>
+                                        <th class="text-end">Total</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for ingreso in proyecto.ingresos %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ ingreso.concepto }}</strong>
+                                            {% if ingreso.descripcion %}
+                                            <br><small class="text-muted">{{ ingreso.descripcion[:50] }}{% if ingreso.descripcion|length > 50 %}...{% endif %}</small>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end">{{ formatCurrency(ingreso.periodo_0) }}</td>
+                                        <td class="text-end">{{ formatCurrency(ingreso.periodo_1) }}</td>
+                                        <td class="text-end">{{ formatCurrency(ingreso.periodo_2) }}</td>
+                                        <td class="text-end">{{ formatCurrency(ingreso.periodo_3) }}</td>
+                                        <td class="text-end">{{ formatCurrency(ingreso.periodo_4) }}</td>
+                                        <td class="text-end">
+                                            <strong>{{ formatCurrency(ingreso.total) }}</strong>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <a href="{{ url_for('edit_ingreso', id=ingreso.id) }}" 
+                                                   class="btn btn-outline-secondary">
+                                                    <i class="bi bi-pencil"></i>
+                                                </a>
+                                                <form action="{{ url_for('delete_ingreso', id=ingreso.id) }}" 
+                                                      method="POST" class="d-inline">
+                                                    <button type="submit" class="btn btn-outline-danger" 
+                                                            onclick="return confirm('¿Eliminar ingreso?')">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                    <!-- Totales -->
+                                    <tr class="table-active">
+                                        <td><strong>TOTALES</strong></td>
+                                        <td class="text-end"><strong>{{ formatCurrency(proyecto.ingresos|sum(attribute='periodo_0')) }}</strong></td>
+                                        <td class="text-end"><strong>{{ formatCurrency(proyecto.ingresos|sum(attribute='periodo_1')) }}</strong></td>
+                                        <td class="text-end"><strong>{{ formatCurrency(proyecto.ingresos|sum(attribute='periodo_2')) }}</strong></td>
+                                        <td class="text-end"><strong>{{ formatCurrency(proyecto.ingresos|sum(attribute='periodo_3')) }}</strong></td>
+                                        <td class="text-end"><strong>{{ formatCurrency(proyecto.ingresos|sum(attribute='periodo_4')) }}</strong></td>
+                                        <td class="text-end"><strong>{{ formatCurrency(proyecto.ingresos|sum(attribute='total')) }}</strong></td>
+                                        <td></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="bi bi-cash-coin display-4 text-muted mb-3"></i>
+                            <h5 class="text-muted">No hay ingresos registrados</h5>
+                            <p class="text-muted mb-0">Agrega los ingresos esperados del proyecto</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Flujo de Efectivo -->
+            {% if flujo %}
+            <div class="card card-vrash mb-4">
+                <div class="card-header card-header-vrash">
+                    <h5 class="mb-0"><i class="bi bi-arrow-left-right me-2"></i> Flujo de Efectivo por Día</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Concepto</th>
+                                    <th class="text-end">Día 1</th>
+                                    <th class="text-end">Día 2</th>
+                                    <th class="text-end">Día 3</th>
+                                    <th class="text-end">Día 4</th>
+                                    <th class="text-end">Día 5</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Flujo Neto (Fₖ)</strong></td>
+                                    <td class="text-end {% if flujo.periodo_0 < 0 %}text-danger{% else %}text-success{% endif %}">
+                                        {{ formatCurrency(flujo.periodo_0) }}
+                                    </td>
+                                    <td class="text-end {% if flujo.periodo_1 < 0 %}text-danger{% else %}text-success{% endif %}">
+                                        {{ formatCurrency(flujo.periodo_1) }}
+                                    </td>
+                                    <td class="text-end {% if flujo.periodo_2 < 0 %}text-danger{% else %}text-success{% endif %}">
+                                        {{ formatCurrency(flujo.periodo_2) }}
+                                    </td>
+                                    <td class="text-end {% if flujo.periodo_3 < 0 %}text-danger{% else %}text-success{% endif %}">
+                                        {{ formatCurrency(flujo.periodo_3) }}
+                                    </td>
+                                    <td class="text-end {% if flujo.periodo_4 < 0 %}text-danger{% else %}text-success{% endif %}">
+                                        {{ formatCurrency(flujo.periodo_4) }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Flujo Descontado</td>
+                                    <td class="text-end">{{ formatCurrency(flujo.descontado_0) }}</td>
+                                    <td class="text-end">{{ formatCurrency(flujo.descontado_1) }}</td>
+                                    <td class="text-end">{{ formatCurrency(flujo.descontado_2) }}</td>
+                                    <td class="text-end">{{ formatCurrency(flujo.descontado_3) }}</td>
+                                    <td class="text-end">{{ formatCurrency(flujo.descontado_4) }}</td>
+                                </tr>
+                                <tr class="table-active">
+                                    <td><strong>Flujo Acumulado</strong></td>
+                                    <td class="text-end"><strong>{{ formatCurrency(flujo.acumulado_0) }}</strong></td>
+                                    <td class="text-end"><strong>{{ formatCurrency(flujo.acumulado_1) }}</strong></td>
+                                    <td class="text-end"><strong>{{ formatCurrency(flujo.acumulado_2) }}</strong></td>
+                                    <td class="text-end"><strong>{{ formatCurrency(flujo.acumulado_3) }}</strong></td>
+                                    <td class="text-end"><strong>{{ formatCurrency(flujo.acumulado_4) }}</strong></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Gráfico de flujos -->
+                    <div class="mt-4">
+                        <canvas id="flujoChart" height="100"></canvas>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Indicadores -->
+            {% if proyecto.indicador %}
+            <div class="card card-vrash">
+                <div class="card-header card-header-vrash">
+                    <h5 class="mb-0"><i class="bi bi-graph-up-arrow me-2"></i> Indicadores Financieros</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="metric-card">
+                                <p class="metric-label">VAN (Valor Actual Neto)</p>
+                                <p class="metric-value {% if proyecto.indicador.van and proyecto.indicador.van > 0 %}text-success{% else %}text-danger{% endif %}">
+                                    {{ formatCurrency(proyecto.indicador.van) }}
+                                </p>
+                                <small class="formula-box d-block mt-2">
+                                    $VAN = \sum_{k=0}^{5} \frac{F_k}{(1+i)^k} - I_0$
+                                </small>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="metric-card">
+                                <p class="metric-label">TIR (Tasa Interna de Retorno)</p>
+                                <p class="metric-value text-primary">
+                                    {{ formatPercent(proyecto.indicador.tir) }}
+                                </p>
+                                <div class="mt-2">
+                                    {% if proyecto.indicador.tir and proyecto.indicador.tir > 20 %}
+                                    <span class="badge bg-success">BASTANTE ATRACTIVO</span>
+                                    {% elif proyecto.indicador.tir and proyecto.indicador.tir > 10 %}
+                                    <span class="badge bg-warning">ATRACTIVO</span>
+                                    {% else %}
+                                    <span class="badge bg-danger">POCO ATRACTIVO</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="metric-card">
+                                <p class="metric-label">ROI (Retorno Inversión)</p>
+                                <p class="metric-value text-info">
+                                    {{ formatPercent(proyecto.indicador.roi) }}
+                                </p>
+                                <small class="formula-box d-block mt-2">
+                                    $ROI = \frac{Beneficio\ Neto}{I_0} \times 100\%$
+                                </small>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="metric-card">
+                                <p class="metric-label">IR (Índice Rentabilidad)</p>
+                                <p class="metric-value {% if proyecto.indicador.ir and proyecto.indicador.ir > 0 %}text-success{% else %}text-danger{% endif %}">
+                                    {{ proyecto.indicador.ir|round(4) if proyecto.indicador.ir else 'N/A' }}
+                                </p>
+                                <small class="formula-box d-block mt-2">
+                                    $IR = \frac{VAN}{I_0}$
+                                </small>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="metric-card">
+                                <p class="metric-label">B/C (Beneficio/Costo)</p>
+                                <p class="metric-value {% if proyecto.indicador.relacion_bc and proyecto.indicador.relacion_bc > 1 %}text-success{% else %}text-danger{% endif %}">
+                                    {{ proyecto.indicador.relacion_bc|round(4) if proyecto.indicador.relacion_bc else 'N/A' }}
+                                </p>
+                                <small class="formula-box d-block mt-2">
+                                    $I_{BC} = \frac{\sum \frac{B_k}{(1+i)^k}}{\sum \frac{C_k}{(1+i)^k}}$
+                                </small>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="metric-card">
+                                <p class="metric-label">PRI (Período de Recuperación de la Inversión)</p>
+                                <p class="metric-value text-warning">
+                                    {{ proyecto.indicador.payback|round(2) if proyecto.indicador.payback else 'N/A' }} días
+                                </p>
+                                <small class="formula-box d-block mt-2">
+                                    $Payback = A_0 + \frac{I_0 - FA_0}{F_{A_0+1}}$
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Decisión y Observaciones -->
+                    <div class="alert alert-{{ 'success' if proyecto.indicador.decision == 'ACEPTAR' else 'danger' }} mt-4">
+                        <h5 class="mb-2">
+                            <i class="bi bi-{{ 'check-circle' if proyecto.indicador.decision == 'ACEPTAR' else 'x-circle' }} me-2"></i>
+                            Decisión: <strong>{{ proyecto.indicador.decision }}</strong>
+                        </h5>
+                        <p class="mb-0">{{ proyecto.indicador.observaciones }}</p>
+                        <small class="d-block mt-2">
+                            <i class="bi bi-clock me-1"></i>
+                            Calculado: {{ proyecto.indicador.calculado_at.strftime('%d/%m/%Y %H:%M') if proyecto.indicador.calculado_at else 'No calculado' }}
+                        </small>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Gráfico de flujos
+    {% if flujo %}
+    const flujoCtx = document.getElementById('flujoChart').getContext('2d');
+    new Chart(flujoCtx, {
+        type: 'bar',
+        data: {
+            labels: ['Día 1', 'Día 2', 'Día 3', 'Día 4', 'Día 5'],
+            datasets: [{
+                label: 'Flujo de Efectivo (Bs)',
+                data: [
+                    {{ flujo.periodo_0 }},
+                    {{ flujo.periodo_1 }},
+                    {{ flujo.periodo_2 }},
+                    {{ flujo.periodo_3 }},
+                    {{ flujo.periodo_4 }}
+                ],
+                backgroundColor: function(context) {
+                    const index = context.dataIndex;
+                    const value = context.dataset.data[index];
+                    return value >= 0 ? 'rgba(40, 167, 69, 0.7)' : 'rgba(220, 53, 69, 0.7)';
+                },
+                borderColor: function(context) {
+                    const index = context.dataIndex;
+                    const value = context.dataset.data[index];
+                    return value >= 0 ? 'rgb(40, 167, 69)' : 'rgb(220, 53, 69)';
+                },
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `Flujo: ${formatCurrency(context.raw)}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return 'Bs ' + value.toLocaleString('es-BO');
+                        }
+                    }
+                }
+            }
+        }
+    });
+    {% endif %}
+</script>
+{% endblock %}
+

@@ -1,0 +1,82 @@
+<!-- Componente para mostrar fórmulas matemáticas -->
+<div class="card card-vrash mt-4">
+    <div class="card-header card-header-vrash">
+        <h5 class="mb-0"><i class="bi bi-calculator me-2"></i> Fórmulas Aplicadas</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <h6>Indicadores Financieros:</h6>
+                <ul class="list-unstyled">
+                    <li class="mb-3">
+                        <strong>VAN (Valor Actual Neto):</strong>
+                        <div class="formula-box">
+                            $$VAN = \sum_{k=0}^{5} \frac{F_k}{(1+i)^k} - I_0$$
+                        </div>
+                    </li>
+                    <li class="mb-3">
+                        <strong>TIR (Tasa Interna de Retorno):</strong>
+                        <div class="formula-box">
+                            $$TIR \approx i_1 + \frac{VAN_1}{VAN_1 - VAN_2} \times (i_2 - i_1)$$
+                        </div>
+                    </li>
+                    <li class="mb-3">
+                        <strong>I_BC (Índice Beneficio/Costo):</strong>
+                        <div class="formula-box">
+                            $$I_{BC} = \frac{\sum_{k=0}^{5} \frac{B_k}{(1+i)^k}}{\sum_{k=0}^{5} \frac{C_k}{(1+i)^k}}$$
+                        </div>
+                    </li>
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <h6>Fórmulas Básicas:</h6>
+                <ul class="list-unstyled">
+                    <li class="mb-3">
+                        <strong>Flujo de Efectivo:</strong>
+                        <div class="formula-box">
+                            $$F_k = I_k - E_k$$
+                        </div>
+                    </li>
+                    <li class="mb-3">
+                        <strong>Utilidad Bruta (UB):</strong>
+                        <div class="formula-box">
+                            $$UB = I - CV$$
+                        </div>
+                    </li>
+                    <li class="mb-3">
+                        <strong>Utilidad Neta (UN):</strong>
+                        <div class="formula-box">
+                            $$UN = UB \times (1 - t)$$
+                        </div>
+                    </li>
+                    <li class="mb-3">
+                        <strong>ROI (Retorno Inversión):</strong>
+                        <div class="formula-box">
+                            $$ROI = \frac{Beneficio\ Neto}{I_0} \times 100\%$$
+                        </div>
+                    </li>
+                    <li class="mb-3">
+                        <strong>Payback (Recuperación):</strong>
+                        <div class="formula-box">
+                            $$Payback = A_0 + \frac{I_0 - FA_0}{F_{A_0+1}}$$
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="alert alert-info mt-3">
+            <h6><i class="bi bi-info-circle me-2"></i> Variables:</h6>
+            <ul class="mb-0">
+                <li><span class="variable">i</span> = Tasa de descuento (TMAR)</li>
+                <li><span class="variable">t</span> = Tasa de impuestos</li>
+                <li><span class="variable">I₀</span> = Inversión inicial</li>
+                <li><span class="variable">Fₖ</span> = Flujo neto del período k</li>
+                <li><span class="variable">Bₖ</span> = Beneficios del período k</li>
+                <li><span class="variable">Cₖ</span> = Costos del período k</li>
+                <li><span class="variable">A₀</span> = Año anterior al recupero</li>
+                <li><span class="variable">FA₀</span> = Flujo acumulado hasta A₀</li>
+            </ul>
+        </div>
+    </div>
+</div>

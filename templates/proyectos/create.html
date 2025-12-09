@@ -1,0 +1,397 @@
+{% extends "layout.html" %}
+
+{% block title %}Crear Proyecto - PEP Gelatinas Ch'iki 2025{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card card-vrash">
+                <div class="card-header card-header-vrash">
+                    <h4 class="mb-0">
+                        <i class="bi bi-plus-circle me-2"></i> Crear Nuevo Proyecto
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('create_proyecto') }}" enctype="multipart/form-data">
+                        <div class="row">
+                            <!-- Nombre del Proyecto -->
+                            <div class="col-md-12 mb-3">
+                                <label for="nombre" class="form-label">
+                                    <i class="bi bi-tag me-1"></i> Nombre del Proyecto *
+                                </label>
+                                <input type="text" 
+                                       class="form-control form-control-lg" 
+                                       id="nombre" 
+                                       name="nombre" 
+                                       value="{{ request.form.nombre or '' }}" 
+                                       placeholder="Ej: Producción de Gelatinas con Chips 2025"
+                                       required>
+                                <div class="form-text">Nombre descriptivo del proyecto</div>
+                            </div>
+
+                            <!-- Descripción -->
+                            <div class="col-md-12 mb-3">
+                                <label for="descripcion" class="form-label">
+                                    <i class="bi bi-text-paragraph me-1"></i> Descripción
+                                </label>
+                                <textarea class="form-control" 
+                                          id="descripcion" 
+                                          name="descripcion" 
+                                          rows="3"
+                                          placeholder="Describe los objetivos del proyecto...">{{ request.form.descripcion or '' }}</textarea>
+                            </div>
+
+                            <!-- Empresa -->
+                            <div class="col-md-6 mb-3">
+                                <label for="empresa" class="form-label">
+                                    <i class="bi bi-building me-1"></i> Empresa *
+                                </label>
+                                <input type="text" 
+                                       class="form-control" 
+                                       id="empresa" 
+                                       name="empresa" 
+                                       value="{{ request.form.empresa or 'Gelatinas Ch' + "'" + 'iki' }}" 
+                                       required>
+                            </div>
+
+                            <!-- Producto -->
+                            <div class="col-md-6 mb-3">
+                                <label for="producto" class="form-label">
+                                    <i class="bi bi-box me-1"></i> Producto *
+                                </label>
+                                <input type="text" 
+                                       class="form-control" 
+                                       id="producto" 
+                                       name="producto" 
+                                       value="{{ request.form.producto or 'Gelatinas Ch' + "'" + 'iki - Dulce que alegra tu día' }}" 
+                                       required>
+                            </div>
+
+                            <!-- Tasa de Descuento (i) -->
+                            <div class="col-md-4 mb-3">
+                                <label for="tasa_descuento" class="form-label">
+                                    <i class="bi bi-percent me-1"></i> TMAR / Tasa de Descuento (i) *
+                                </label>
+                                <div class="input-group">
+                                    <input type="number" 
+                                           step="0.01" 
+                                           min="0" 
+                                           max="100"
+                                           class="form-control" 
+                                           id="tasa_descuento" 
+                                           name="tasa_descuento" 
+                                           value="{{ request.form.tasa_descuento or '12.00' }}" 
+                                           required>
+                                    <span class="input-group-text">%</span>
+                                </div>
+                                <div class="formula-box">
+                                    <small>Fórmula VAN: $VAN = \sum_{k=0}^{n} \frac{F_k}{(1+i)^k} - I_0$</small>
+                                </div>
+                            </div>
+
+                            <!-- Tasa de Impuestos (t) -->
+                            <div class="col-md-4 mb-3">
+                                <label for="tasa_impuestos" class="form-label">
+                                    <i class="bi bi-cash-coin me-1"></i> Tasa de Impuestos (t) *
+                                </label>
+                                <div class="input-group">
+                                    <input type="number" 
+                                           step="0.01" 
+                                           min="0" 
+                                           max="100"
+                                           class="form-control" 
+                                           id="tasa_impuestos" 
+                                           name="tasa_impuestos" 
+                                           value="{{ request.form.tasa_impuestos or '13.00' }}" 
+                                           required>
+                                    <span class="input-group-text">%</span>
+                                </div>
+                                <div class="formula-box">
+                                    <small>Fórmula: $UN = UB \times (1 - t)$</small>
+                                </div>
+                            </div>
+
+                            <!-- Períodos (SIEMPRE 5) -->
+                            <div class="col-md-4 mb-3">
+                                <label for="periodos" class="form-label">
+                                    <i class="bi bi-calendar-week me-1"></i> Períodos (Días) *
+                                </label>
+                                <input type="number" 
+                                       class="form-control" 
+                                       id="periodos" 
+                                       name="periodos" 
+                                       value="5" 
+                                       min="5" 
+                                       max="5"
+                                       readonly
+                                       required>
+                                <div class="form-text">Configuración fija: 5 días</div>
+                            </div>
+
+                            <!-- Inversión Inicial (I₀) -->
+                            <div class="col-md-6 mb-3">
+                                <label for="inversion_inicial" class="form-label">
+                                    <i class="bi bi-cash-stack me-1"></i> Inversión Inicial (I₀) *
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text">Bs</span>
+                                    <input type="number" 
+                                           step="0.01" 
+                                           min="0"
+                                           class="form-control" 
+                                           id="inversion_inicial" 
+                                           name="inversion_inicial" 
+                                           value="{{ request.form.inversion_inicial or '0' }}"
+                                           required>
+                                </div>
+                                <div class="form-text">Monto inicial de inversión</div>
+                            </div>
+
+                            <!-- Unidades de Producción (Q) -->
+                            <div class="col-md-6 mb-3">
+                                <label for="unidades_produccion" class="form-label">
+                                    <i class="bi bi-boxes me-1"></i> Unidades de Producción/Día (Q) *
+                                </label>
+                                <input type="number" 
+                                       min="0"
+                                       class="form-control" 
+                                       id="unidades_produccion" 
+                                       name="unidades_produccion" 
+                                       value="{{ request.form.unidades_produccion or '0' }}"
+                                       required>
+                                <div class="formula-box">
+                                    <small>Fórmula: $I = Q \times P$ (Ingresos = Cantidad × Precio)</small>
+                                </div>
+                            </div>
+
+                            <!-- Precio de Venta Unitario (P) -->
+                            <div class="col-md-6 mb-3">
+                                <label for="precio_venta_unitario" class="form-label">
+                                    <i class="bi bi-tag me-1"></i> Precio de Venta Unitario (P) *
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text">Bs</span>
+                                    <input type="number" 
+                                           step="0.01" 
+                                           min="0"
+                                           class="form-control" 
+                                           id="precio_venta_unitario" 
+                                           name="precio_venta_unitario" 
+                                           value="{{ request.form.precio_venta_unitario or '0' }}"
+                                           required>
+                                </div>
+                            </div>
+
+                            <!-- Estado -->
+                            <div class="col-md-6 mb-3">
+                                <label for="estado" class="form-label">
+                                    <i class="bi bi-clock-history me-1"></i> Estado *
+                                </label>
+                                <select class="form-select" id="estado" name="estado" required>
+                                    <option value="planificacion" {% if request.form.estado == 'planificacion' %}selected{% endif %}>En Planificación</option>
+                                    <option value="en_ejecucion" {% if request.form.estado == 'en_ejecucion' %}selected{% endif %}>En Ejecución</option>
+                                    <option value="finalizado" {% if request.form.estado == 'finalizado' %}selected{% endif %}>Finalizado</option>
+                                    <option value="cancelado" {% if request.form.estado == 'cancelado' %}selected{% endif %}>Cancelado</option>
+                                </select>
+                            </div>
+
+                            <!-- Fecha de Inicio -->
+                            <div class="col-md-6 mb-4">
+                                <label for="fecha_inicio" class="form-label">
+                                    <i class="bi bi-calendar-event me-1"></i> Fecha de Inicio *
+                                </label>
+                                <input type="date" 
+                                       class="form-control" 
+                                       id="fecha_inicio" 
+                                       name="fecha_inicio" 
+                                       value="{{ request.form.fecha_inicio or today }}" 
+                                       required>
+                            </div>
+
+                            <!-- Botón Cargar Datos de Ejemplo -->
+                            <div class="col-md-6 mb-4 d-flex align-items-end">
+                                <button type="button" class="btn btn-outline-info w-100" onclick="cargarDatosEjemplo()">
+                                    <i class="bi bi-magic me-2"></i>Cargar Datos de Ejemplo
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Logo del Proyecto -->
+                        <div class="row mb-4">
+                            <div class="col-md-12">
+                                <label for="logo" class="form-label">
+                                    <i class="bi bi-image me-1"></i> Logo del Proyecto
+                                </label>
+                                <div class="input-group">
+                                    <input type="file" 
+                                           class="form-control" 
+                                           id="logo" 
+                                           name="logo" 
+                                           accept="image/*"
+                                           onchange="previewLogo(event)">
+                                    <span class="input-group-text">
+                                        <i class="bi bi-upload"></i>
+                                    </span>
+                                </div>
+                                <div class="form-text">Formatos soportados: JPG, PNG, GIF (máx. 5MB)</div>
+                                <!-- Preview del logo -->
+                                <div id="logoPreview" style="margin-top: 10px; display: none;">
+                                    <img id="logoImg" src="" alt="Preview" style="max-width: 200px; max-height: 200px; border-radius: 8px;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('list_proyectos') }}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left me-2"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-vrash">
+                                <i class="bi bi-save me-2"></i> Crear Proyecto
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Información de Fórmulas -->
+            <div class="card card-vrash mt-4">
+                <div class="card-header card-header-vrash">
+                    <h5 class="mb-0"><i class="bi bi-calculator me-2"></i> Fórmulas que se Aplicarán</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Indicadores Financieros:</h6>
+                            <ul class="list-unstyled">
+                                <li class="mb-2">
+                                    <strong>VAN:</strong> 
+                                    <div class="formula-box">$VAN = \sum_{k=0}^{5} \frac{F_k}{(1+i)^k} - I_0$</div>
+                                </li>
+                                <li class="mb-2">
+                                    <strong>TIR:</strong> 
+                                    <div class="formula-box">$TIR \approx i_1 + \frac{VAN_1}{VAN_1 - VAN_2} \times (i_2 - i_1)$</div>
+                                </li>
+                                <li class="mb-2">
+                                    <strong>I_BC:</strong> 
+                                    <div class="formula-box">$I_{BC} = \frac{\sum \frac{B_k}{(1+i)^k}}{\sum \frac{C_k}{(1+i)^k}}$</div>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Fórmulas Básicas:</h6>
+                            <ul class="list-unstyled">
+                                <li class="mb-2">
+                                    <strong>Flujo:</strong> 
+                                    <div class="formula-box">$F_k = I_k - E_k$</div>
+                                </li>
+                                <li class="mb-2">
+                                    <strong>Utilidad Bruta:</strong> 
+                                    <div class="formula-box">$UB = I - CV$</div>
+                                </li>
+                                <li class="mb-2">
+                                    <strong>Utilidad Neta:</strong> 
+                                    <div class="formula-box">$UN = UB \times (1 - t)$</div>
+                                </li>
+                                <li class="mb-2">
+                                    <strong>ROI:</strong> 
+                                    <div class="formula-box">$ROI = \frac{Beneficio\ Neto}{I_0} \times 100\%$</div>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Configurar fecha por defecto a hoy
+    document.getElementById('fecha_inicio').value = new Date().toISOString().split('T')[0];
+    
+    function cargarDatosEjemplo() {
+        if (confirm("¿Cargar datos de ejemplo para Gelatinas Ch'iki?")) {
+            // Datos de ejemplo realistas
+            document.getElementById('nombre').value = "Producción de Gelatinas Ch'iki 2025";
+            document.getElementById('descripcion').value = "Proyecto para evaluar la producción de Gelatinas Ch'iki (dulce que alegra tu día) en vasos de 200ml para el mercado local. Incluye análisis de costos de producción, comercialización y rentabilidad esperada.";
+            document.getElementById('empresa').value = "Gelatinas Ch'iki";
+            document.getElementById('producto').value = "Gelatinas Ch'iki - Dulce que alegra tu día (200ml)";
+            document.getElementById('tasa_descuento').value = '12.00';
+            document.getElementById('tasa_impuestos').value = '13.00';
+            document.getElementById('inversion_inicial').value = '50000';
+            document.getElementById('unidades_produccion').value = '1000';
+            document.getElementById('precio_venta_unitario').value = '6.50';
+            document.getElementById('estado').value = 'planificacion';
+            
+            alert('Datos de ejemplo cargados. Revisa y ajusta según necesites.');
+        }
+    }
+    
+    // Validación en tiempo real
+    document.getElementById('unidades_produccion').addEventListener('change', function() {
+        if (this.value < 0) this.value = 0;
+    });
+    
+    document.getElementById('precio_venta_unitario').addEventListener('change', function() {
+        if (this.value < 0) this.value = 0;
+    });
+    
+    // Calcular ingresos estimados
+    function calcularIngresosEstimados() {
+        const unidades = parseInt(document.getElementById('unidades_produccion').value) || 0;
+        const precio = parseFloat(document.getElementById('precio_venta_unitario').value) || 0;
+        const ingresos = unidades * precio;
+        
+        const resultado = document.getElementById('ingresos_estimados');
+        if (resultado && ingresos > 0) {
+            resultado.textContent = formatCurrency(ingresos);
+            resultado.classList.remove('text-muted');
+            resultado.classList.add('text-success', 'fw-bold');
+        }
+    }
+    
+    // Escuchar cambios en unidades y precio
+    document.getElementById('unidades_produccion').addEventListener('input', calcularIngresosEstimados);
+    document.getElementById('precio_venta_unitario').addEventListener('input', calcularIngresosEstimados);
+    
+    // Preview del logo
+    function previewLogo(event) {
+        const file = event.target.files[0];
+        const preview = document.getElementById('logoPreview');
+        const img = document.getElementById('logoImg');
+        
+        if (file) {
+            // Validar tamaño (máx 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                alert('El archivo es demasiado grande. Máximo 5MB.');
+                event.target.value = '';
+                preview.style.display = 'none';
+                return;
+            }
+            
+            // Validar tipo de archivo
+            if (!file.type.startsWith('image/')) {
+                alert('Por favor selecciona un archivo de imagen válido.');
+                event.target.value = '';
+                preview.style.display = 'none';
+                return;
+            }
+            
+            // Mostrar preview
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                img.src = e.target.result;
+                preview.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        } else {
+            preview.style.display = 'none';
+        }
+    }
+</script>
+{% endblock %}

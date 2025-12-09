@@ -1,0 +1,465 @@
+{% extends "layout.html" %}
+
+{% block title %}Diagrama Gantt - {{ proyecto.nombre }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Encabezado -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="display-6 mb-2">
+                <i class="bi bi-calendar3 text-primary me-2"></i> 
+                Diagrama de Gantt por Horas
+            </h1>
+            <p class="text-muted mb-0">{{ proyecto.nombre }} - Cronograma de actividades (5 días)</p>
+        </div>
+        <div>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAddActivity">
+                <i class="bi bi-plus-circle me-2"></i> Nueva Actividad
+            </button>
+            <a href="{{ url_for('dashboard_proyecto', id=proyecto.id) }}" class="btn btn-outline-secondary ms-2">
+                <i class="bi bi-arrow-left me-2"></i> Volver
+            </a>
+        </div>
+    </div>
+
+    <!-- Estadísticas -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <p class="text-muted small mb-1">Total Actividades</p>
+                            <h3 class="mb-0" id="totalActividades">17</h3>
+                        </div>
+                        <i class="bi bi-list-check text-primary" style="font-size: 1.8rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <p class="text-muted small mb-1">Duración Total</p>
+                            <h3 class="mb-0"><span id="duracionTotal">49</span>h</h3>
+                        </div>
+                        <i class="bi bi-hourglass-split text-success" style="font-size: 1.8rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <p class="text-muted small mb-1">Actividades Completadas</p>
+                            <h3 class="mb-0"><span id="actividadesCompletadas">0</span></h3>
+                        </div>
+                        <i class="bi bi-check-circle text-info" style="font-size: 1.8rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <p class="text-muted small mb-1">Progreso General</p>
+                            <h3 class="mb-0"><span id="progresoGeneral">0</span>%</h3>
+                        </div>
+                        <i class="bi bi-graph-up text-warning" style="font-size: 1.8rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fechas del Proyecto -->
+    <div class="card mb-4 border-0 shadow-sm">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <div>
+                        <p class="text-muted small mb-1"><i class="bi bi-calendar-event me-2"></i>Fecha de Inicio</p>
+                        <h5 class="mb-0">{{ proyecto.fecha_inicio }}</h5>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div>
+                        <p class="text-muted small mb-1"><i class="bi bi-calendar-check me-2"></i>Fecha de Finalización</p>
+                        <h5 class="mb-0">{{ proyecto.fecha_fin }}</h5>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div>
+                        <p class="text-muted small mb-1"><i class="bi bi-info-circle me-2"></i>Estado</p>
+                        <h5 class="mb-0">
+                            {% if proyecto.estado == 'activo' %}
+                                <span class="badge bg-success">Activo</span>
+                            {% elif proyecto.estado == 'pendiente' %}
+                                <span class="badge bg-warning">Pendiente</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ proyecto.estado }}</span>
+                            {% endif %}
+                        </h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Editar Actividades del Gantt -->
+    <div class="card mb-4 border-0 shadow-sm">
+        <div class="card-header bg-white border-bottom">
+            <h5 class="mb-0">Editar Actividades del Gantt</h5>
+        </div>
+        <div class="card-body">
+            <!-- Tabla de Actividades -->
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>#</th>
+                            <th>Actividad</th>
+                            <th>Encargado</th>
+                            <th>Fecha</th>
+                            <th>Hora Inicio</th>
+                            <th>Duración (h)</th>
+                            <th>Progreso</th>
+                            <th>Color</th>
+                            <th>Dependencias</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaActividades">
+                        <!-- Se carga dinámicamente con JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+            <button class="btn btn-secondary mt-3" onclick="restaurarValoresPorDefecto()">
+                <i class="bi bi-arrow-counterclockwise me-2"></i> Restaurar Valores por Defecto
+            </button>
+        </div>
+    </div>
+
+    <!-- Vista Previa del Diagrama -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-bottom">
+            <h5 class="mb-0">Vista Previa del Diagrama</h5>
+        </div>
+        <div class="card-body">
+            <div class="gantt-container" id="ganttDiagram" style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; overflow-x: auto;">
+                <!-- Se genera dinámicamente con JavaScript -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Agregar Nueva Actividad -->
+<div class="modal fade" id="modalAddActivity" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nueva Actividad</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="modalNombreActividad" class="form-label">Nombre de la Actividad</label>
+                    <input type="text" class="form-control" id="modalNombreActividad" placeholder="Ej: Compra de ingredientes">
+                </div>
+                <div class="mb-3">
+                    <label for="modalEncargado" class="form-label">Encargado</label>
+                    <input type="text" class="form-control" id="modalEncargado" placeholder="Ej: Sergio, Ana">
+                </div>
+                <div class="mb-3">
+                    <label for="modalFecha" class="form-label">Fecha (DD/MM/YYYY)</label>
+                    <input type="text" class="form-control" id="modalFecha" placeholder="05/01/2025">
+                </div>
+                <div class="mb-3">
+                    <label for="modalHora" class="form-label">Hora Inicio (HH:MM)</label>
+                    <input type="text" class="form-control" id="modalHora" placeholder="08:00">
+                </div>
+                <div class="mb-3">
+                    <label for="modalDuracion" class="form-label">Duración (horas)</label>
+                    <input type="number" class="form-control" id="modalDuracion" placeholder="2" min="0.5" step="0.5">
+                </div>
+                <div class="mb-3">
+                    <label for="modalColor" class="form-label">Color</label>
+                    <input type="color" class="form-control form-control-color" id="modalColor" value="#FF6B6B">
+                </div>
+                <div class="mb-3">
+                    <label for="modalDependencia" class="form-label">Dependencia (ID o -)</label>
+                    <input type="text" class="form-control" id="modalDependencia" placeholder="-">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="agregarActividad()">Agregar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .gantt-container {
+        display: flex;
+        flex-direction: column;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .gantt-header {
+        display: flex;
+        margin-bottom: 10px;
+    }
+
+    .gantt-label {
+        width: 200px;
+        font-weight: 600;
+        padding: 8px;
+        border-right: 1px solid #ddd;
+        background-color: #f0f0f0;
+    }
+
+    .gantt-timeline {
+        display: flex;
+        flex: 1;
+    }
+
+    .gantt-hour {
+        flex: 1;
+        min-width: 60px;
+        text-align: center;
+        font-size: 0.75rem;
+        padding: 8px;
+        border-right: 1px solid #eee;
+        color: #666;
+    }
+
+    .gantt-row {
+        display: flex;
+        border-bottom: 1px solid #ddd;
+        align-items: center;
+    }
+
+    .gantt-row-label {
+        width: 200px;
+        padding: 8px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        border-right: 1px solid #ddd;
+        background-color: #f8f9fa;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .gantt-row-bars {
+        display: flex;
+        flex: 1;
+        position: relative;
+        height: 40px;
+    }
+
+    .gantt-bar {
+        position: absolute;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-align: center;
+        border-radius: 4px;
+        opacity: 0.9;
+        border: 2px solid transparent;
+    }
+
+    .gantt-bar:hover {
+        opacity: 1;
+        border-color: rgba(0, 0, 0, 0.3);
+    }
+</style>
+
+<script>
+    // Variables globales
+    let actividades = [];
+    let modalInstance = null;
+
+    // Array de actividades por defecto
+    const actividadesPorDefecto = [
+        { id: 1, actividad: "Compra ingredientes (Día 0)", encargado: "Sergio, Ana", fecha: "05/01/2025", hora: "08:00", duracion: 2, progreso: 0, color: "#FF6B6B", dependencia: "-" },
+        { id: 2, actividad: "Preparación de moldes (Día 0)", encargado: "Carlos", fecha: "05/01/2025", hora: "10:00", duracion: 1, progreso: 0, color: "#FF6B6B", dependencia: "-" },
+        { id: 3, actividad: "Elaboración de gelatina (Día 0)", encargado: "Carlos, María", fecha: "05/01/2025", hora: "14:00", duracion: 3, progreso: 0, color: "#4ECDC4", dependencia: "-" },
+        { id: 4, actividad: "Colado y enfriamiento (Día 0)", encargado: "María, Juan", fecha: "05/01/2025", hora: "18:00", duracion: 2, progreso: 0, color: "#4ECDC4", dependencia: "-" },
+        { id: 5, actividad: "Desmolde inicial (Día 1)", encargado: "Ana, José", fecha: "06/01/2025", hora: "08:00", duracion: 1.5, progreso: 0, color: "#4ECDC4", dependencia: "4" },
+        { id: 6, actividad: "Inspección de calidad (Día 1)", encargado: "Supervisor", fecha: "06/01/2025", hora: "10:00", duracion: 1, progreso: 0, color: "#FFD166", dependencia: "5" },
+        { id: 7, actividad: "Empaque de unidades (Día 1-2)", encargado: "Equipo empaque", fecha: "06/01/2025", hora: "12:00", duracion: 4, progreso: 0, color: "#FFD166", dependencia: "6" },
+        { id: 8, actividad: "Etiquetado (Día 2)", encargado: "Ana, Rosa", fecha: "07/01/2025", hora: "09:00", duracion: 2, progreso: 0, color: "#FFD166", dependencia: "7" },
+        { id: 9, actividad: "Paletizado (Día 2)", encargado: "Luis, Diego", fecha: "07/01/2025", hora: "12:00", duracion: 1.5, progreso: 0, color: "#FFD166", dependencia: "8" },
+        { id: 10, actividad: "Transporte a almacén (Día 2)", encargado: "Conductor", fecha: "07/01/2025", hora: "14:00", duracion: 2, progreso: 0, color: "#06D6A0", dependencia: "9" },
+        { id: 11, actividad: "Organización en almacén (Día 3)", encargado: "Equipo almacén", fecha: "08/01/2025", hora: "08:00", duracion: 2, progreso: 0, color: "#06D6A0", dependencia: "10" },
+        { id: 12, actividad: "Distribución a puntos venta (Día 3)", encargado: "Vendedores", fecha: "08/01/2025", hora: "11:00", duracion: 3, progreso: 0, color: "#06D6A0", dependencia: "11" },
+        { id: 13, actividad: "Atención a clientes (Día 3-4)", encargado: "Personal ventas", fecha: "08/01/2025", hora: "14:00", duracion: 5, progreso: 0, color: "#06D6A0", dependencia: "12" },
+        { id: 14, actividad: "Recopilación de datos de ventas (Día 4)", encargado: "TODOS", fecha: "09/01/2025", hora: "10:00", duracion: 2, progreso: 0, color: "#118AB2", dependencia: "-" },
+        { id: 15, actividad: "Análisis de datos (Día 4)", encargado: "TODOS", fecha: "09/01/2025", hora: "13:00", duracion: 3, progreso: 0, color: "#118AB2", dependencia: "14" },
+        { id: 16, actividad: "Presentación de resultados (Día 4)", encargado: "Coordinador", fecha: "09/01/2025", hora: "17:00", duracion: 1.5, progreso: 0, color: "#118AB2", dependencia: "15" },
+        { id: 17, actividad: "Evaluación final (Día 4)", encargado: "TODOS", fecha: "09/01/2025", hora: "19:00", duracion: 1, progreso: 0, color: "#118AB2", dependencia: "16" }
+    ];
+
+    // Inicializar
+    document.addEventListener('DOMContentLoaded', function() {
+        actividades = JSON.parse(JSON.stringify(actividadesPorDefecto));
+        modalInstance = new bootstrap.Modal(document.getElementById('modalAddActivity'));
+        cargarTabla();
+        generarGanttDiagram();
+        actualizarEstadisticas();
+    });
+
+    // Cargar tabla
+    function cargarTabla() {
+        const tbody = document.getElementById('tablaActividades');
+        tbody.innerHTML = '';
+        actividades.forEach((act, index) => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${index + 1}</td>
+                <td><input type="text" class="form-control form-control-sm" value="${act.actividad}" onchange="actualizarActividad(${act.id}, 'actividad', this.value)"></td>
+                <td><input type="text" class="form-control form-control-sm" value="${act.encargado}" onchange="actualizarActividad(${act.id}, 'encargado', this.value)"></td>
+                <td><input type="text" class="form-control form-control-sm" value="${act.fecha}" onchange="actualizarActividad(${act.id}, 'fecha', this.value)"></td>
+                <td><input type="text" class="form-control form-control-sm" value="${act.hora}" onchange="actualizarActividad(${act.id}, 'hora', this.value)"></td>
+                <td><input type="number" class="form-control form-control-sm" value="${act.duracion}" step="0.5" onchange="actualizarActividad(${act.id}, 'duracion', parseFloat(this.value))"></td>
+                <td><input type="number" class="form-control form-control-sm" value="${act.progreso}" min="0" max="100" onchange="actualizarActividad(${act.id}, 'progreso', parseInt(this.value))"></td>
+                <td><input type="color" class="form-control form-control-sm form-control-color" value="${act.color}" onchange="actualizarActividad(${act.id}, 'color', this.value)"></td>
+                <td><input type="text" class="form-control form-control-sm" value="${act.dependencia}" onchange="actualizarActividad(${act.id}, 'dependencia', this.value)"></td>
+                <td><button class="btn btn-sm btn-danger" onclick="eliminarActividad(${act.id})"><i class="bi bi-trash"></i></button></td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    // Actualizar actividad
+    function actualizarActividad(id, campo, valor) {
+        const actividad = actividades.find(a => a.id === id);
+        if (actividad) {
+            actividad[campo] = valor;
+            generarGanttDiagram();
+            actualizarEstadisticas();
+        }
+    }
+
+    // Eliminar actividad
+    function eliminarActividad(id) {
+        if (confirm('¿Eliminar esta actividad?')) {
+            actividades = actividades.filter(a => a.id !== id);
+            cargarTabla();
+            generarGanttDiagram();
+            actualizarEstadisticas();
+        }
+    }
+
+    // Agregar actividad
+    function agregarActividad() {
+        const nombre = document.getElementById('modalNombreActividad').value;
+        const encargado = document.getElementById('modalEncargado').value;
+        const fecha = document.getElementById('modalFecha').value;
+        const hora = document.getElementById('modalHora').value;
+        const duracion = parseFloat(document.getElementById('modalDuracion').value);
+        const color = document.getElementById('modalColor').value;
+        const dependencia = document.getElementById('modalDependencia').value;
+
+        if (!nombre || !fecha || !hora || !duracion) {
+            alert('Por favor completa todos los campos');
+            return;
+        }
+
+        const newId = Math.max(...actividades.map(a => a.id), 0) + 1;
+        actividades.push({
+            id: newId,
+            actividad: nombre,
+            encargado: encargado,
+            fecha: fecha,
+            hora: hora,
+            duracion: duracion,
+            progreso: 0,
+            color: color,
+            dependencia: dependencia
+        });
+
+        document.getElementById('modalNombreActividad').value = '';
+        document.getElementById('modalEncargado').value = '';
+        document.getElementById('modalFecha').value = '';
+        document.getElementById('modalHora').value = '';
+        document.getElementById('modalDuracion').value = '';
+        document.getElementById('modalColor').value = '#FF6B6B';
+        document.getElementById('modalDependencia').value = '-';
+
+        const modal = bootstrap.Modal.getInstance(document.getElementById('modalAddActivity'));
+        modal.hide();
+
+        cargarTabla();
+        generarGanttDiagram();
+        actualizarEstadisticas();
+    }
+
+    // Restaurar valores por defecto
+    function restaurarValoresPorDefecto() {
+        if (confirm('¿Restaurar todas las actividades a sus valores por defecto?')) {
+            actividades = JSON.parse(JSON.stringify(actividadesPorDefecto));
+            cargarTabla();
+            generarGanttDiagram();
+            actualizarEstadisticas();
+        }
+    }
+
+    // Generar diagrama de Gantt
+    function generarGanttDiagram() {
+        const container = document.getElementById('ganttDiagram');
+        container.innerHTML = '';
+
+        const horaInicio = 6;
+        const horaFin = 24;
+        const horas = horaFin - horaInicio;
+
+        // Header
+        let html = '<div class="gantt-header"><div class="gantt-label">Actividad</div><div class="gantt-timeline">';
+        for (let i = horaInicio; i < horaFin; i++) {
+            html += `<div class="gantt-hour">${i}:00</div>`;
+        }
+        html += '</div></div>';
+
+        // Filas
+        actividades.forEach(act => {
+            html += '<div class="gantt-row">';
+            html += `<div class="gantt-row-label" title="${act.actividad}">${act.actividad}</div>`;
+            html += '<div class="gantt-row-bars">';
+
+            const [h, m] = act.hora.split(':').map(Number);
+            const startPixel = ((h - horaInicio) * 60 + m) / (horas * 60) * 100;
+            const widthPixel = (act.duracion * 60) / (horas * 60) * 100;
+
+            html += `<div class="gantt-bar" style="left: ${startPixel}%; width: ${widthPixel}%; background-color: ${act.color};" title="${act.actividad} (${act.duracion}h - ${act.progreso}%)">${act.duracion}h</div>`;
+
+            html += '</div></div>';
+        });
+
+        container.innerHTML = html;
+    }
+
+    // Actualizar estadísticas
+    function actualizarEstadisticas() {
+        document.getElementById('totalActividades').textContent = actividades.length;
+        document.getElementById('duracionTotal').textContent = actividades.reduce((sum, a) => sum + a.duracion, 0).toFixed(1);
+        document.getElementById('actividadesCompletadas').textContent = actividades.filter(a => a.progreso === 100).length;
+        const progresoGeneral = actividades.length > 0 ? Math.round(actividades.reduce((sum, a) => sum + a.progreso, 0) / actividades.length) : 0;
+        document.getElementById('progresoGeneral').textContent = progresoGeneral;
+    }
+</script>
+
+{% endblock %}
