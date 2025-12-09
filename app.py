@@ -10,25 +10,15 @@ from services.calculator_service import CalculatorService
 from services.gantt_service import GanttService
 from services.sensibilidad_service import SensibilidadService
 
-# Inicializar db fuera de la app
-db = SQLAlchemy()
+
 migrate = Migrate()
 
-# Crear la app de Flask
-# Crear la app de Flask
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'pep_vrash_2025_secret_key')
 
-# Tomar la URL de la base de datos
 database_url = os.environ.get("DATABASE_URL")
-if not database_url:
-    raise RuntimeError("DATABASE_URL no está definida en las variables de entorno.")
-
-# Render PostgreSQL a veces devuelve "postgres://", SQLAlchemy necesita "postgresql://"
 if database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
-
-# Forzar SSL requerido (Render requiere SSL)
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url + "?sslmode=require"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -36,9 +26,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
 migrate.init_app(app, db)
 
-# Crear tablas si no existen
-with app.app_context():
-    db.create_all()
+
 # ============================================
 # FILTROS DE JINJA2
 # ============================================
